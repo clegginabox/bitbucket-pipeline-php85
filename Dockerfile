@@ -1,4 +1,4 @@
-FROM php:8.4-cli
+FROM php:8.5-rc-cli
 
 # https://getcomposer.org/doc/03-cli.md#composer-allow-superuser
 ENV COMPOSER_ALLOW_SUPERUSER=1

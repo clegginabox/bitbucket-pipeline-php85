@@ -25,6 +25,7 @@ RUN git clone --depth 1 https://github.com/grpc/grpc.git . \
     # Build the PHP Extension, providing the path to the C++ core libs
     && cd ../../src/php/ext/grpc \
     && phpize \
+    && export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig \
     && ./configure --with-grpc \
     && make -j$(nproc) \
     && cp modules/grpc.so /tmp/grpc.so

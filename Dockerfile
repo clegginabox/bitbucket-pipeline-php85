@@ -21,12 +21,11 @@ RUN git clone --depth 1 https://github.com/grpc/grpc.git . \
     && cmake ../.. -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF \
     && make -j$(nproc) \
     && make install \
-    # Build the PHP Extension
+    # Build the PHP Extension, providing the path to the C++ core libs
     && cd ../../src/php/ext/grpc \
     && phpize \
-    && ./configure \
+    && ./configure --with-grpc=/usr/local \
     && make -j$(nproc) \
-    # We do NOT need 'make install' here, we just need the compiled .so file
     && cp modules/grpc.so /tmp/grpc.so
 
 FROM php:8.5-cli

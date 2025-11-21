@@ -60,15 +60,8 @@ COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensio
 # Install standard extensions
 RUN install-php-extensions mysqli redis pdo_mysql pdo_pgsql fileinfo intl sockets bcmath xsl soap zip pcov
 
-
-# The extension needs these .so files at runtime!
-COPY --from=builder /usr/local/lib/libgrpc*.so* /usr/local/lib/
-COPY --from=builder /usr/local/lib/libgpr*.so* /usr/local/lib/
-COPY --from=builder /usr/local/lib/libabsl*.so* /usr/local/lib/
-COPY --from=builder /usr/local/lib/libre2*.so* /usr/local/lib/
-COPY --from=builder /usr/local/lib/libaddress_sorting*.so* /usr/local/lib/
-# (Optional: Copying the whole /usr/local/lib is often easier if the builder is clean)
-# COPY --from=builder /usr/local/lib /usr/local/lib
+# Copy ALL shared libraries from the builder to runtime
+COPY --from=builder /usr/local/lib/ /usr/local/lib/
 
 # Update the linker cache so PHP can find the new libraries
 RUN ldconfig

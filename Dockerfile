@@ -7,7 +7,8 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     autoconf \
     libtool \
-    pkg-config
+    pkg-config \
+    re2c
 
 # Download and Compile gRPC (PR #40337)
 # We use /tmp/grpc to build

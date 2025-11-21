@@ -9,8 +9,6 @@ RUN apt-get update && apt-get install -y \
     libtool \
     pkg-config \
     re2c \
-    # "linux-headers-generic" is sometimes helpful for bleeding edge builds,
-    # but build-essential usually covers it.
     && apt-get clean
 
 # Download and Compile gRPC (PR #40337)
@@ -20,7 +18,6 @@ RUN git clone --depth 1 https://github.com/grpc/grpc.git . \
     && git checkout pr-40337 \
     && git submodule update --init --recursive --depth 1 \
     && mkdir -p cmake/build && cd cmake/build \
-    # --- BUILD C++ CORE ---
     && cmake ../.. \
        -DCMAKE_BUILD_TYPE=Release \
        -DgRPC_INSTALL=ON \
@@ -30,11 +27,9 @@ RUN git clone --depth 1 https://github.com/grpc/grpc.git . \
     && make -j$(nproc) \
     && make install \
     && ldconfig \
-    # --- BUILD PHP EXT ---
     && cd ../../src/php/ext/grpc \
     && phpize \
-    # Ensure PKG_CONFIG_PATH looks in both lib and lib64 just in case
-    && export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig \
+    && export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig \
     && CPPFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib" ./configure --with-grpc=/usr/local \
     && make -j$(nproc) \
     && cp modules/grpc.so /tmp/grpc.so
@@ -54,9 +49,6 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     default-mysql-client \
-    # Runtime shared libraries for gRPC might be needed here depending on linking
-    # but usually the static extension approach is preferred in Docker.
-    # However, since we built shared upstream, we might need libstdc++
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy Composer
@@ -65,22 +57,23 @@ COPY --from=composer:2.8.9 /usr/bin/composer /usr/bin/composer
 # Copy install-php-extensions
 COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
 
-# Install PHP extensions
-RUN install-php-extensions mysqli \
-    redis \
-    pdo_mysql \
-    pdo_pgsql \
-    fileinfo \
-    intl \
-    sockets \
-    bcmath \
-    xsl \
-    soap \
-    zip \
-    pcov
+# Install standard extensions
+RUN install-php-extensions mysqli redis pdo_mysql pdo_pgsql fileinfo intl sockets bcmath xsl soap zip pcov
 
-# Copy grpc and enable
+
+# The extension needs these .so files at runtime!
+COPY --from=builder /usr/local/lib/libgrpc*.so* /usr/local/lib/
+COPY --from=builder /usr/local/lib/libgpr*.so* /usr/local/lib/
+COPY --from=builder /usr/local/lib/libabsl*.so* /usr/local/lib/
+COPY --from=builder /usr/local/lib/libre2*.so* /usr/local/lib/
+COPY --from=builder /usr/local/lib/libaddress_sorting*.so* /usr/local/lib/
+# (Optional: Copying the whole /usr/local/lib is often easier if the builder is clean)
+# COPY --from=builder /usr/local/lib /usr/local/lib
+
+# Update the linker cache so PHP can find the new libraries
+RUN ldconfig
+
+# Install the extension
 COPY --from=builder /tmp/grpc.so /tmp/grpc.so
 RUN mv /tmp/grpc.so $(php-config --extension-dir) \
     && docker-php-ext-enable grpc
-

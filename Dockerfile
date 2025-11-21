@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
 COPY --from=composer:2.8.9 /usr/bin/composer /usr/bin/composer
 
 # Copy install-php-extensions from mlocati
-COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
 
 # Install PHP extensions declaratively
 RUN install-php-extensions \

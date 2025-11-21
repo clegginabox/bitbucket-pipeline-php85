@@ -18,13 +18,14 @@ RUN git clone --depth 1 https://github.com/grpc/grpc.git . \
     && git submodule update --init --recursive --depth 1 \
     && mkdir -p cmake/build && cd cmake/build \
     # Build the C++ Core (Static Lib)
-    && cmake ../.. -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF \
+    && cmake ../.. -DCMAKE_BUILD_TYPE=Release -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF -DgRPC_PHP_SATELLITE_SERVICES=ON \
     && make -j$(nproc) \
     && make install \
+    && ldconfig \
     # Build the PHP Extension, providing the path to the C++ core libs
     && cd ../../src/php/ext/grpc \
     && phpize \
-    && ./configure --with-grpc=/usr/local \
+    && ./configure --with-grpc \
     && make -j$(nproc) \
     && cp modules/grpc.so /tmp/grpc.so
 

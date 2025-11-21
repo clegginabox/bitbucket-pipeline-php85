@@ -26,7 +26,7 @@ RUN git clone --depth 1 https://github.com/grpc/grpc.git . \
     && cd ../../src/php/ext/grpc \
     && phpize \
     && export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig \
-    && ./configure --with-grpc \
+    && CPPFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib" ./configure --with-grpc \
     && make -j$(nproc) \
     && cp modules/grpc.so /tmp/grpc.so
 

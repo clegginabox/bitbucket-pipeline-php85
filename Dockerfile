@@ -1,40 +1,4 @@
-FROM php:8.5-cli AS builder
-
-# Install strictly what is needed to COMPILE gRPC
-RUN apt-get update && apt-get install -y \
-    git \
-    cmake \
-    build-essential \
-    autoconf \
-    libtool \
-    pkg-config \
-    re2c \
-    && apt-get clean
-
-# Download and Compile gRPC (PR #40337)
-WORKDIR /tmp/grpc
-RUN git clone --depth 1 https://github.com/grpc/grpc.git . \
-    && git fetch origin pull/40337/head:pr-40337 \
-    && git checkout pr-40337 \
-    && git submodule update --init --recursive --depth 1 \
-    && mkdir -p cmake/build && cd cmake/build \
-    && cmake ../.. \
-       -DCMAKE_BUILD_TYPE=Release \
-       -DgRPC_INSTALL=ON \
-       -DgRPC_BUILD_TESTS=OFF \
-       -DgRPC_PHP_SATELLITE_SERVICES=ON \
-       -DBUILD_SHARED_LIBS=ON \
-    && make -j$(nproc) \
-    && make install \
-    && ldconfig \
-    && cd ../../src/php/ext/grpc \
-    && phpize \
-    && export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig \
-    && CPPFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib" ./configure --with-grpc=/usr/local \
-    && make -j$(nproc) \
-    && cp modules/grpc.so /tmp/grpc.so
-
-FROM php:8.5-cli
+FROM clegginabox/php-grpc:8.5-cli
 
 # Standard Environment Setup
 ENV COMPOSER_ALLOW_SUPERUSER=1
@@ -59,14 +23,3 @@ COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensio
 
 # Install standard extensions
 RUN install-php-extensions mysqli redis pdo_mysql pdo_pgsql fileinfo intl sockets bcmath xsl soap zip pcov
-
-# Copy ALL shared libraries from the builder to runtime
-COPY --from=builder /usr/local/lib/ /usr/local/lib/
-
-# Update the linker cache so PHP can find the new libraries
-RUN ldconfig
-
-# Install the extension
-COPY --from=builder /tmp/grpc.so /tmp/grpc.so
-RUN mv /tmp/grpc.so $(php-config --extension-dir) \
-    && docker-php-ext-enable grpc
